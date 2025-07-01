@@ -1,0 +1,145 @@
+########################################################
+# README
+# CS 15
+# Project 4: Gerp
+# Name: Alexander Fomin and Saajid Islam
+# Date: 12/11/2022
+########################################################
+
+# Compile/run:
+
+Compile using:
+    make gerp (or just make)
+Run executable with:
+    ./gerp inputDirectory outputFile
+
+# Program Purpose:
+
+The purpose of Gerp is to implement a tool that behaves similarly to the
+unix grep program in that it can search through the files in a provided
+directory to look for a sequence of characters. The user can ask the program
+to search for particular words and they will be provided with the filepath,
+line number in that file, and the accompanying lines without repeats where the
+queried string appears.
+
+# Acknowledgements:
+
+We mostly coded the project ourselves, though the design checkoff gave us a
+good idea of where to start and office hours proved helpful later for
+debugging. We debated the merits of some approaches with each other before
+settling on our final implementation. The C++ reference site for particularly
+the functional STL objects proved quite useful for our hashing process.
+
+# Files:
+
+main.cpp:
+    Makes an instance of the Gerp class and calls the constructor that
+    initializes the hash tables and runs the command loop.
+
+gerp.cpp:
+    Implementation of gerp class. Main functionality is to take in user
+    inputted queries and run specific commands based on said queries.
+
+gerp.h:
+    Interface of gerp class.h
+
+# Architectural Overview:
+
+The initialization of our Gerp program begins with the set-up of an FS tree
+based on the provided directory. The input directory name becomes the root of
+the tree, and its children are subdirectories and any files that may also be
+contained within. These are all represented by and stored in DirNodes, another
+class supplied to us in the given files. After the access points to the files
+are opened in the directory nodes, the case-sensitive hashTable and
+all-lowercased lcHashTable are filled up with the words hashed away by the hash
+functions from the text files. For the words put in the lcHashTable, the
+toLower function for strings we made is used. This is done at the same time
+that each text line is getting sorted away into the wordID structs of the
+member vector allFileLines. When this initialization stage is completed, the
+program prompts the user for a query to be input through the command loop
+function, at which point the user can enter one of four different commands:
+a sensitive search consisting of the word alone, an insensitive search
+consisting of "@i" or "@insensitive" with the queried word, "@f" plus an output
+filename to redirect the output file stream to a new output file, or "@q"
+or "@quit" to leave the Gerp search. When a query is made, insensitive queries
+lead to hashing through the lcHashTable, since it contains every use of a word
+without regard to capitalization in all the of the files of a directory.
+
+# Data Structures:
+
+Hash tables are the preeminent data structure in this project, and they 
+form the backbone of the Gerp search because their O(1) average case time
+complexity for searching elements is enticing for the stated aim of the
+program. Effectively, hash tables are a field of buckets which represent 
+key-value pairs. When inserting a new element, a hash function is used to
+instantly assign it an address based on some random characteristics of the data
+being inserted. The O(1) speed of this process is good for the large amount of
+words being hashed in Gerp, and it is only impeded occasionally by some words
+being assigned to the same address in the hash table. In our case, we tried
+avoiding this by allocating a very large amount of space for our hash tables 
+and utilizing chaining for differently capitalized versions of the same words
+from text files in a second hash table. This second hash table would store
+every occurrence of a word, except that every line is lowercased, meaning it
+would be the table we reference for case-insensitive searches. We also
+monitored the load factor of the chains in the hash tables by tracking the
+longest chain and expanding once that value exceeded a certain threshold.
+
+Vectors feature quite prominently in our implementation of Gerp, as we actually
+use them to implement our hash tables and store all of the lines read in from
+the files in the provided directories. The adjacent memory storage that vectors
+provide is very useful for hashing because we have constant time access to all
+the indices and the corresponding data stored within. The self-expanding
+feature of vectors is also helpful in situations like reading through text
+files where we do not know how many lines the text files may have, seeing as we
+can always add more. They are also used to store our line numbers for different
+hashed words because they are easy to iterate through to extract relevant data.
+
+Lists serve one purpose in the Gerp implementation: chaining. While it might
+seem like vectors are a simpler choice for chaining, lists (that is, linked
+lists which use non-adjacent nodes to store information) come out on top for
+chaining because collision and, consequently, chaining is a highly uncommon
+event in our implementation. As a result, it is not efficient at all to
+allocate extra memory at every single slot of our hash tables for elements to
+be added - after all, there is little guarantee that we will need even a single
+spot in memory at an address of our hash table vector to hold a word. Thus, we
+greatly reduce our space complexity by using lists to hold chains at buckets of
+our hash tables because an empty list is the initial state of these chains, and
+usually, these lists will stay empty or need one node at most.
+
+# Testing:
+
+Our initial debugging phase for phase one was to implement print statements
+throughout our functions to see that we get the intended results at various
+points; we would cout the variables after modifying them to see that they
+were modified correctly. We then tested our phase one functions in the main
+function by having several test cases as well as edge cases to see that our
+functions handled them as intended. Then, for phase two of the project, we
+decided that it would be best to implement the main.cpp and the makefile as
+soon as possible since that would permit us to compile our code and run an
+executable, thus allowing us to test all other functions. Our main was
+implemented in a similar manner to the one in MetroSim, so it was easy to
+code and debug. Then we would write function headers in Gerp.h and Gerp.cpp
+concurrently so that we could easily modify the parameteres of any function
+we make. Once we got main.cpp and our executable working, our coding and
+testing process was to first attempt to write a function one at a time, then
+test it in our implementation by printing using cout statements and seeing
+that it was the desired value. Once, we had a concrete plan about how our
+design was going to work, we were able to implement most of the functions
+fairly easily. However, for a couple, like initializeTable, we had to really
+think through what our functions were doing since the bugs we came across
+while trying to write it weren't immediately apparent. Through this process,
+we came across several edge cases (particularly regarding empty/new lines)
+and realized we had to take into consideration these cases; we would see what
+the reference implementation would do for such a scenario and try to mimic the
+result. At the end, when we were confident in our code, we would compare
+output from our implementation with output from the provided implementation and
+see that they match. We also used our first submission to the autograder to see
+if we were missing anything obvious, or that we were on the right track. We
+also tried out edge cases (such as all non-alphanumeric strings) on the
+reference implementation to see how they handle errors and then work that into
+our code. Once we saw that our implementation had no differences from the
+implementation provided to us, we were confident that we had no remaining
+errors. After we got everything working as intended, we went back into our code
+to see if there was any way to optimize it in order to make it run faster
+and/or use less space. One way we did this was to add '&' in front of most
+string parameters, as well as utilizing pointers instead of passing by value.
